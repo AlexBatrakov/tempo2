@@ -139,10 +139,19 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     bare_m2 = am2*BARE_SUNMASS;
     bare_m1 = bare_m-bare_m2;
 
+
+
     if (psr->ddstg_init == 0)
-    {
-        puts("DDSTG tables are not loaded. Starting loading.");
+    {   
         psr->ddstg_init = 1;
+        if ((factors.alpha0 == 0.0) && (factors.beta0 == 0.0))
+        {
+        printf("alpha0, beta0: %lf %lf\n", factors.alpha0, factors.beta0);
+        puts("DDSTG in DDGR mode.");
+        }
+        else
+        {
+        puts("Loading DDSTG tables.");
         tables.eosName = psr->eos_name;
         printf("EOS: %s\n", tables.eosName);
         printf("%s\n", getenv(TEMPO2_ENVIRON));
@@ -150,7 +159,7 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
         allocate_DEF_arrays(psr, &tables);
         interpolate_DEF_arrays(psr, &tables);
         DEF_tables_free(&tables);
-        puts("DDSTG tables were loaded and arrays were interpolated.");
+        puts("DDSTG tables are loaded and arrays are interpolated.");
     //    interpolate_DEF_params(psr, mA, &alphaA, &betaA, &kA);
     //    printf("mA, alphaA, betaA, kA: %lf %lf %lf %lf\n", mA, alphaA, betaA, kA);
 
@@ -159,6 +168,7 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
         printf("mA, alphaA, betaA, kA: %lf %lf %lf %lf\n", factors.mA, factors.alphaA, factors.betaA, factors.kA);
         printf("Companion type: %s\n", factors.companion_type);
         printf("mB, alphaB, betaB, kB: %lf %lf %lf %lf\n", factors.mB, factors.alphaB, factors.betaB, factors.kB);
+        }
     }
 
     interpolate_DEF_factors(psr, &factors);

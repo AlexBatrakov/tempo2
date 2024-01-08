@@ -522,10 +522,10 @@ typedef struct pulsar {
     char binaryModel[100];                 /*!< Binary model e.g. BT/ELL1/BT2P etc.                        */
 
     // Parameters necessary for DDSTG model
-    char companion_type[3];  /*!< The type of the companion star: NS, WD or BH                                    */
+    char companion_type[100];  /*!< The type of the companion star: NS, WD or BH                                    */
     char eos_name[100];      /*!< The name for a equation of state used for objects internal structure            */
     int ddstg_init;          /*!< The key parameter ensuring the completed initialization of ddst tables         */
-    int N_mA;                /*!< The lenght of arrays with DDST parameters; number of mass points          */
+    int N_mA;                /*!< The lenght of arrays with DDSTG parameters; number of mass points          */
     double *mA_array;
     double *alphaA_array;
     double *betaA_array;

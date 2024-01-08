@@ -157,6 +157,11 @@ void initialiseOne (pulsar *psr, int noWarnings, int fullSetup)
     psr->rescaleErrChisq = 1; /* Rescale parameter errors by reduced chisq  */
     strcpy(psr->name,"NOT SET");
     strcpy(psr->binaryModel,"NONE"); 
+
+    strcpy(psr->companion_type,"NONE"); /* DDSTG  initialize companion */
+    strcpy(psr->eos_name,"NONE"); /* DDSTG  equation of state */
+    psr->ddstg_init = 0; /* DDSTG  key for reading tables */
+
     psr->nJumps=0;
      psr->nfdJumps=0;
     psr->nToffset = 0;

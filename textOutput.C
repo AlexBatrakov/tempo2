@@ -1348,6 +1348,10 @@ void textOutput(pulsar *psr,int npsr,double globalParameter,int nGlobal,int outR
                         }
                     }
                 }
+                // DDSTG print EOS and COMP_TYPE to new.par
+                if (strcmp(psr[p].eos_name, "NONE") != 0) fprintf(fout2,"%-15.15s%s\n","EOS",psr[p].eos_name);
+                if (strcmp(psr[p].companion_type, "NONE") != 0) fprintf(fout2,"%-15.15s%s\n","COMP_TYPE",psr[p].companion_type);
+
                 if (psr[p].tempo1 == 1)
                 {
                     if (!strcmp(psr[p].clock, "TT(UTC(NIST))")) fprintf(fout2,"%-15.15s%s\n","CLK","UTC(NIST)");
