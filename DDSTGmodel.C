@@ -73,6 +73,7 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     double dk_dm, dk_dm2, dgamma_dm, dgamma_dm2, dsi_dm, dsi_dm2, ddr_dm, ddr_dm2, ddth_dm, ddth_dm2, dpbdot_dm, dpbdot_dm2, ddt_dm, ddt_dm2;
     double epsNum, tt, frb, delta, delta_old, diff, ae1, cae, sae, psi, cpsi, spsi, dRoe, dEin, dSha, dAbe;
     int loop_counter1, loop_counter2;
+    double ddSHa_ds;
 
     if (displayCVSversion == 1) CVSdisplayVersion("DDSTGmodel.C","DDSTGmodel()",CVS_verNum);
 
@@ -130,7 +131,7 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     factors.mB = am2;
 
     alpha0 = factors.alpha0;
-    beta0 = factors.betaA;
+    beta0 = factors.beta0;
     mA = factors.mA;
     mB = factors.mB;
 
@@ -326,11 +327,16 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
         brace  = onemecu - si*(sw*cume + sqr1me2*cw*su);
         if (brace<=0)
         {
-            printf("ERROR: In DDSTG model, brace < 0\n");
-            exit(1);
+            printf("ERROR: In DDSTG model, brace = %f < 0\n", brace);
+            printf("t0 = %f, sin i = %f\n", t0,  si);
+            //exit(1);
+            brace = 1e-12;
         }
+
         dlogbr = log(brace);
         dSha   = -2.0*bare_m2*dlogbr;                                   //change m2 to bare_m2
+
+        ddSHa_ds = -2.0*bare_m2 * (sw*cume + sqr1me2*cw*su) / brace;
 
 //  Aberration
         a0aligned=an*ar/(2.0*M_PI*f0*si*sqr1me2);                         //added a0 and b0
@@ -380,60 +386,60 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
 //----------------------------------------------------------------------------------------
 //  Here non needed
 
-    an0 = sqrt(m/pow(arr,3));
+    // an0 = sqrt(m/pow(arr,3));
 
-    csigma=x*(-sw*su+sqr1me2*cw*cu)/onemecu;
-    ce=su*csigma-x*sw-ecc*x*cw*su/sqr1me2;
-    cx=sw*cume+sqr1me2*cw*su;
-    comega=x*(cw*cume-sqr1me2*sw*su);
-    cgamma=su;
-    cm2=-2*dlogbr;
-    csi=2*m2*(sw*cume+sqr1me2*cw*su)/brace; 
+    // csigma=x*(-sw*su+sqr1me2*cw*cu)/onemecu;
+    // ce=su*csigma-x*sw-ecc*x*cw*su/sqr1me2;
+    // cx=sw*cume+sqr1me2*cw*su;
+    // comega=x*(cw*cume-sqr1me2*sw*su);
+    // cgamma=su;
+    // cm2=-2*dlogbr;
+    // csi=2*m2*(sw*cume+sqr1me2*cw*su)/brace; 
 
-    fact1=(m/(2*arr)) * ((m-m2)*m2/pow(m,2) - 9);
-    fact2=(3*m/(2*pow(arr,4))) * (1.0 + fact1);
-    fact3=(m/2*arr) * (m2/pow(m,2)-2*(m-m2)*m2/pow(m,3));
-    fact4=(1+fact1)*3*m/(2*pow(arr,4)*an0);
-    fact5=an0*fact1/arr;
+    // fact1=(m/(2*arr)) * ((m-m2)*m2/pow(m,2) - 9);
+    // fact2=(3*m/(2*pow(arr,4))) * (1.0 + fact1);
+    // fact3=(m/2*arr) * (m2/pow(m,2)-2*(m-m2)*m2/pow(m,3));
+    // fact4=(1+fact1)*3*m/(2*pow(arr,4)*an0);
+    // fact5=an0*fact1/arr;
 
-    denumm=(1+fact1)/(2*pow(arr,3)*an0) + an0*(fact1/m+fact3);
-    denomm=fact4+fact5;
-    darrdm=denumm/denomm;
+    // denumm=(1+fact1)/(2*pow(arr,3)*an0) + an0*(fact1/m+fact3);
+    // denomm=fact4+fact5;
+    // darrdm=denumm/denomm;
 
-    dnum = an0*(m-2*m2)/(2*arr*m);
-    denom = an0*fact1/arr + fact2/an0;
+    // dnum = an0*(m-2*m2)/(2*arr*m);
+    // denom = an0*fact1/arr + fact2/an0;
 
-    darrdm2 = dnum/denom;
+    // darrdm2 = dnum/denom;
 
-    dgmdm2 = ((m+2*m2)/arr - (m2*(m+m2)*darrdm2/pow(arr,2)))*ecc/(an*m);
-    cdth=-ecc*ecc*x*cw*su/sqr1me2;
-    dthdm2 = -dth*darrdm2/arr - (m+m2)/(arr*m);
+    // dgmdm2 = ((m+2*m2)/arr - (m2*(m+m2)*darrdm2/pow(arr,2)))*ecc/(an*m);
+    // cdth=-ecc*ecc*x*cw*su/sqr1me2;
+    // dthdm2 = -dth*darrdm2/arr - (m+m2)/(arr*m);
 
-    dkdm = k/m - k*darrdm/arr;
-    dsidm2 = -(m*x/(arr*m2))*(1.0/m2+darrdm2/arr);
-    ck = ae*comega;
-    dkdm2 = -k*darrdm2/arr;
-    cdr = -ecc*x*sw;
-    ddrdm2 = -dr*darrdm2/arr - 2*m2/(arr*m);
-    dtdm2 = -2*dlogbr;
+    // dkdm = k/m - k*darrdm/arr;
+    // dsidm2 = -(m*x/(arr*m2))*(1.0/m2+darrdm2/arr);
+    // ck = ae*comega;
+    // dkdm2 = -k*darrdm2/arr;
+    // cdr = -ecc*x*sw;
+    // ddrdm2 = -dr*darrdm2/arr - 2*m2/(arr*m);
+    // dtdm2 = -2*dlogbr;
 
-    csini = 2*m2*(sw*cume+sqr1me2*cw*su)/brace;
+    // csini = 2*m2*(sw*cume+sqr1me2*cw*su)/brace;
 
-    dsidm=-(m*x/(arr*m2))*(-1.0/m+darrdm/arr);
-    dpbdm = pbdot/(m-m2) - pbdot/(3*m);
-    cpbdot = -csigma*an*pow(tt0,2)/(2*pb);
-    ddrdm = -dr/m - dr*darrdm/arr + 6/arr;
+    // dsidm=-(m*x/(arr*m2))*(-1.0/m+darrdm/arr);
+    // dpbdm = pbdot/(m-m2) - pbdot/(3*m);
+    // cpbdot = -csigma*an*pow(tt0,2)/(2*pb);
+    // ddrdm = -dr/m - dr*darrdm/arr + 6/arr;
 
-    dpbdm2 = pbdot/m2 - pbdot/(m-m2);
+    // dpbdm2 = pbdot/m2 - pbdot/(m-m2);
 
-    cm2 = dtdm2+cgamma*dgmdm2+csini*dsidm2+ck*dkdm2+cdr*ddrdm2+cdth*dthdm2+cpbdot*dpbdm2; //DDGR
-    fact6=1.0/(arr*m);
-    fact7=-(m+m2)/(arr*pow(m,2));
-    fact8=-(m+m2)*darrdm/(pow(arr,2)*m);
-    dgamdm = (ecc*m2/an)*(fact6+fact7+fact8);
+    // cm2 = dtdm2+cgamma*dgmdm2+csini*dsidm2+ck*dkdm2+cdr*ddrdm2+cdth*dthdm2+cpbdot*dpbdm2; //DDGR
+    // fact6=1.0/(arr*m);
+    // fact7=-(m+m2)/(arr*pow(m,2));
+    // fact8=-(m+m2)*darrdm/(pow(arr,2)*m);
+    // dgamdm = (ecc*m2/an)*(fact6+fact7+fact8);
 
-    dthdm=-dth/m - dth*darrdm/arr + (7*m-m2)/(arr*m);
-    cm = ck*dkdm+cgamma*dgamdm+cdr*ddrdm+cdth*dthdm+cpbdot*dpbdm+csini*dsidm; //DDGR
+    // dthdm=-dth/m - dth*darrdm/arr + (7*m-m2)/(arr*m);
+    // cm = ck*dkdm+cgamma*dgamdm+cdr*ddrdm+cdth*dthdm+cpbdot*dpbdm+csini*dsidm; //DDGR
 
 //    printf("cm and cm2 values:\nDDGR: %.17g %.17g\n", cm, cm2);
 
@@ -443,7 +449,7 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
 
     csigma = x*(-sw*su+sqr1me2*cw*cu)/onemecu;
     ce = su*csigma-x*sw-ecc*x*cw*su/sqr1me2;
-    cx = sw*cume+sqr1me2*cw*su;
+    cx = sw*cume+sqr1me2*cw*su + ddSHa_ds * si / x;
     comega = x*(cw*cume-sqr1me2*sw*su);
     cgamma = su;
     csini = 2*bare_m2*(sw*cume+sqr1me2*cw*su)/brace; // change m2 to bare_m2
