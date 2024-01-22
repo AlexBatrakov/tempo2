@@ -64,3 +64,5 @@ void free_3Darray(double ***array, int dim1, int dim2, int dim3);
 int locate_in_array(double value, double *array, int N);
 double bilinear_interpolation(double f00, double f10, double f01, double f11, double x, double y);
 double interpolate_linear(double x_value, int ind, double *x_array, double *y_array);
+
+double lambda_min = 2;

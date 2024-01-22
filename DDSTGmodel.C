@@ -73,7 +73,8 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     double dk_dm, dk_dm2, dgamma_dm, dgamma_dm2, dsi_dm, dsi_dm2, ddr_dm, ddr_dm2, ddth_dm, ddth_dm2, dpbdot_dm, dpbdot_dm2, ddt_dm, ddt_dm2;
     double epsNum, tt, frb, delta, delta_old, diff, ae1, cae, sae, psi, cpsi, spsi, dRoe, dEin, dSha, dAbe;
     int loop_counter1, loop_counter2;
-    double ddSHa_ds;
+    double brace2;
+    double lambda, lambda0 = 1e-4, a, b, c, ddSha_dlambda, ddSHa_ds;
 
     if (displayCVSversion == 1) CVSdisplayVersion("DDSTGmodel.C","DDSTGmodel()",CVS_verNum);
 
@@ -181,12 +182,13 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     betaB = factors.betaB;
     kB = factors.kB;
 
-
-
     /* Given system masses m,m2 and keplerian parameters x,ecc,an, calculate the values
      * of arr,ar,si,gamma,pbdot under general relativity */
 
     mass2ddstg(am,am2,x,ecc,an,&arr,&ar,&xk,&si,&gamma,&pbdot,&dr,&dth, &factors, &derivatives);
+
+    psr[p].param[param_sini].paramSet[0]=1;
+    psr[p].param[param_sini].val[0]=si;
 
     k=xk;
 
@@ -200,76 +202,8 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     eth = ecc*(1.0+dth);
 
 //----------------------------------------------------------------------------------------
-/*
-    orbits = tt0/pb - 0.5*(pbdot+xpbdot)*pow(tt0/pb,2);
-    //  printf("xpbdot = %.14g %.14g\n",(double)xpbdot/1e-12,(double)orbits);
-    norbits = (int)orbits;
-    if (orbits<0.0) norbits--;
-    phase=2.0*M_PI*(orbits-norbits);
-    //  Compute eccentric anomaly u by iterating Kepler's equation.
-    u=phase+ecc*sin(phase)*(1.0+ecc*cos(phase));
 
-    do {
-        
-    	fac = 1.0/(1.0-ecc*cos(u));  // NOTE COULD BE WRONG IN DDmodel - SEE USE OF FAC !!!!
-	du=(phase-(u-ecc*sin(u)))*fac; 
-        u=u+du;
-   	
-    } while (fabs(du)>1.0e-14);  // 1e-12 in DDmodel
-
-    //  DD equations 17a, 29
-    ae = 2.0*atan(sqrt((1+ecc)/(1-ecc))*tan(0.5*u));
-    if(ae<0.0) ae=ae+2.0*M_PI;
-    ae = 2.0*M_PI*orbits + ae-phase;
-    omega=omz/rad2deg + (k+xomdot/(an*rad2deg*365.25*86400.0))*ae;
-    // DD equations 46 through 52
-    su=sin(u);
-    cu=cos(u);
-    sw=sin(omega);
-    cw=cos(omega);
-    alpha=x*sw;
-    beta=x*sqrt(1-pow(eth,2))*cw;
-    bg=beta+gamma;
-    dre=alpha*(cu-er) + bg*su;
-    drep=-alpha*su + bg*cu;
-    drepp=-alpha*cu - bg*su;
-    onemecu=1.0-ecc*cu;
-    anhat=an/onemecu;
-
-    // DD equations 26,27,57
-
-    cume=cu-ecc;
-    sqr1me2=sqrt(1-pow(ecc,2));
-    brace=onemecu-si*(sw*cume+sqr1me2*cw*su);
-    if (brace<=0)
-    {
-        printf("ERROR: In DDSTG model, brace < 0\n");
-        exit(1);
-    }
-    dlogbr=log(brace);
-    ds=-2*bare_m2*dlogbr; //change m2 to bare_m2
-
-    // These will be different if spin axis not aligned -- IS THIS AN ASSUMPTION OF THE MODEL?
-    a0aligned = an*ar/(2.0*M_PI*f0*si*sqr1me2);
-    a0 = afac*a0aligned;
-    b0 = 0.0;
-    da = a0*(sin(omega+ae)+ecc*sw) + b0*(cos(omega+ae) + ecc*cw);
-
-
-    //  Now compute d2bar, the orbital time correction in DD equation 42.
-    d2bar=dre*(1-anhat*drep+(pow(anhat,2))*(pow(drep,2) + 0.5*dre*drepp -
-                +    0.5*ecc*su*dre*drep/onemecu)) + ds + da;
-    torb=-d2bar;
-
-
-    printf("Comparison inversion DDGR vs DDSTG");
-    printf("DDGR ae: \n%.17g\n", ae);
-    printf("DDGR omega: \n%.17g\n", omega);
-    printf("DDGR torb: \n%.17g\n", torb);
-*/
-//----------------------------------------------------------------------------------------
-
-    epsNum = 1.0e-10;
+    epsNum = 1.0e-12;
     delta  = 0.0;
     loop_counter1 = 0;
     do
@@ -325,18 +259,47 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
         sqr1me2 = sqrt(1.0 - pow(ecc,2));
 
         brace  = onemecu - si*(sw*cume + sqr1me2*cw*su);
-        if (brace<=0)
-        {
-            printf("ERROR: In DDSTG model, brace = %f < 0\n", brace);
-            printf("t0 = %f, sin i = %f\n", t0,  si);
-            //exit(1);
-            brace = 1e-12;
-        }
-
+        brace2 = onemecu * (1.0 - si * spsi);
         dlogbr = log(brace);
-        dSha   = -2.0*bare_m2*dlogbr;                                   //change m2 to bare_m2
 
-        ddSHa_ds = -2.0*bare_m2 * (sw*cume + sqr1me2*cw*su) / brace;
+        // if (brace<=0)
+        // {
+        //     printf("ERROR: In DDSTG model, brace = %f < 0\n", brace);
+        //     printf("tt0 = %f, sin i = %f\n", tt0,  si);
+        //     //exit(1);
+        //     //brace = 1e-12;
+        // }
+
+        //change m2 to bare_m2
+        dSha  = -2.0*bare_m2 * log(onemecu);
+
+        lambda = 1.0 - si * spsi;
+
+        // if (lambda_min > 1.0 - si * spsi){
+        //     lambda_min = 1.0 - si * spsi;
+        //     printf("si = %f, spsi = %f, lambda = 1.0 - si * spsi = %f\n", si, spsi,  1.0 - si * spsi);
+        // }
+
+        if (lambda >= lambda0){
+            dSha += -2.0*bare_m2 * log(lambda);
+            ddSha_dlambda = - 2.0*bare_m2 / lambda;
+        
+        }else{
+            // a = -0.5 / (lambda0 * lambda0);
+            // b = 2.0 / lambda0;
+            // c = log(lambda0) - 3/2;
+            
+            // dSha += -2.0*bare_m2 * (a*lambda*lambda + b*lambda + c);
+            // ddSha_dlambda = - 2.0*bare_m2 * (2.0*a*lambda + b);
+
+            a = 1 / lambda0;
+            b = log(lambda0) - 1;
+            
+            dSha += -2.0*bare_m2 * (a*lambda + b);
+            ddSha_dlambda = - 2.0*bare_m2 * a;
+        }
+                              
+        ddSHa_ds = - ddSha_dlambda * spsi;
 
 //  Aberration
         a0aligned=an*ar/(2.0*M_PI*f0*si*sqr1me2);                         //added a0 and b0
@@ -348,8 +311,16 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
         delta = dRoe + dEin + dSha + dAbe;
 
         diff  = fabs(delta - delta_old);
+
     } while( (diff > epsNum) && loop_counter1 < 30 );
 //  Inversion of timing model by iteration: end of loop
+
+    if (param==-1 && lambda < lambda0 && true){
+    //    printf("tt0 = %f, omega = %f, u = %f, sin i = %f, A = %f, B = %f, brace = %f, ", tt0, omega, u, si, onemecu, -(sw*cume + sqr1me2*cw*su), brace);
+    //    printf("x = %e, dRoe = %e, dEin = %e, dSha = %e, dAbe = %e\n", x, dRoe, dEin, dSha, dAbe);
+    printf("diff = %e, loop_counter1 = %i, spsi = %f, brace = %f, dRoe = %e, dEin = %e, dSha = %e\n", diff, loop_counter1, spsi, brace, dRoe, dEin, dSha);
+    }
+
 
 /*
     printf("\nDDSTG ae: \n%.17g\n", ae);
@@ -384,67 +355,7 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     dpbdot_dm2 = derivatives.dpbdot_dm2;
 
 //----------------------------------------------------------------------------------------
-//  Here non needed
 
-    // an0 = sqrt(m/pow(arr,3));
-
-    // csigma=x*(-sw*su+sqr1me2*cw*cu)/onemecu;
-    // ce=su*csigma-x*sw-ecc*x*cw*su/sqr1me2;
-    // cx=sw*cume+sqr1me2*cw*su;
-    // comega=x*(cw*cume-sqr1me2*sw*su);
-    // cgamma=su;
-    // cm2=-2*dlogbr;
-    // csi=2*m2*(sw*cume+sqr1me2*cw*su)/brace; 
-
-    // fact1=(m/(2*arr)) * ((m-m2)*m2/pow(m,2) - 9);
-    // fact2=(3*m/(2*pow(arr,4))) * (1.0 + fact1);
-    // fact3=(m/2*arr) * (m2/pow(m,2)-2*(m-m2)*m2/pow(m,3));
-    // fact4=(1+fact1)*3*m/(2*pow(arr,4)*an0);
-    // fact5=an0*fact1/arr;
-
-    // denumm=(1+fact1)/(2*pow(arr,3)*an0) + an0*(fact1/m+fact3);
-    // denomm=fact4+fact5;
-    // darrdm=denumm/denomm;
-
-    // dnum = an0*(m-2*m2)/(2*arr*m);
-    // denom = an0*fact1/arr + fact2/an0;
-
-    // darrdm2 = dnum/denom;
-
-    // dgmdm2 = ((m+2*m2)/arr - (m2*(m+m2)*darrdm2/pow(arr,2)))*ecc/(an*m);
-    // cdth=-ecc*ecc*x*cw*su/sqr1me2;
-    // dthdm2 = -dth*darrdm2/arr - (m+m2)/(arr*m);
-
-    // dkdm = k/m - k*darrdm/arr;
-    // dsidm2 = -(m*x/(arr*m2))*(1.0/m2+darrdm2/arr);
-    // ck = ae*comega;
-    // dkdm2 = -k*darrdm2/arr;
-    // cdr = -ecc*x*sw;
-    // ddrdm2 = -dr*darrdm2/arr - 2*m2/(arr*m);
-    // dtdm2 = -2*dlogbr;
-
-    // csini = 2*m2*(sw*cume+sqr1me2*cw*su)/brace;
-
-    // dsidm=-(m*x/(arr*m2))*(-1.0/m+darrdm/arr);
-    // dpbdm = pbdot/(m-m2) - pbdot/(3*m);
-    // cpbdot = -csigma*an*pow(tt0,2)/(2*pb);
-    // ddrdm = -dr/m - dr*darrdm/arr + 6/arr;
-
-    // dpbdm2 = pbdot/m2 - pbdot/(m-m2);
-
-    // cm2 = dtdm2+cgamma*dgmdm2+csini*dsidm2+ck*dkdm2+cdr*ddrdm2+cdth*dthdm2+cpbdot*dpbdm2; //DDGR
-    // fact6=1.0/(arr*m);
-    // fact7=-(m+m2)/(arr*pow(m,2));
-    // fact8=-(m+m2)*darrdm/(pow(arr,2)*m);
-    // dgamdm = (ecc*m2/an)*(fact6+fact7+fact8);
-
-    // dthdm=-dth/m - dth*darrdm/arr + (7*m-m2)/(arr*m);
-    // cm = ck*dkdm+cgamma*dgamdm+cdr*ddrdm+cdth*dthdm+cpbdot*dpbdm+csini*dsidm; //DDGR
-
-//    printf("cm and cm2 values:\nDDGR: %.17g %.17g\n", cm, cm2);
-
-
-//----------------------------------------------------------------------------------------
     an0 = sqrt(m/pow(arr,3));
 
     csigma = x*(-sw*su+sqr1me2*cw*cu)/onemecu;
@@ -452,43 +363,19 @@ double DDSTGmodel(pulsar *psr,int p,int ipos,int param)
     cx = sw*cume+sqr1me2*cw*su + ddSHa_ds * si / x;
     comega = x*(cw*cume-sqr1me2*sw*su);
     cgamma = su;
-    csini = 2*bare_m2*(sw*cume+sqr1me2*cw*su)/brace; // change m2 to bare_m2
+//    csini = 2*bare_m2*(sw*cume+sqr1me2*cw*su)/brace; // change m2 to bare_m2
+    csini = ddSHa_ds;
     ck = ae*comega;
     cdr = -ecc*x*sw;
     cdth = -ecc*ecc*x*cw*su/sqr1me2;
     cpbdot = -csigma*an*pow(tt0,2)/(2*pb);
 
-    ddt_dm2 = -2*dlogbr * bare_m2/m2;
-
-
-/*
-    printf("ddt_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", ddt_dm2, dtdm2);
-    printf("dgamma_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", dgamma_dm2, dgmdm2);
-    printf("dsi_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", dsi_dm2, dsidm2);
-    printf("dk_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", dk_dm2, dkdm2);
-    printf("ddr_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", ddr_dm2, ddrdm2);
-    printf("ddth_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", ddth_dm2, dthdm2);
-    printf("dpbdot_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", dpbdot_dm2, dpbdm2);
-    printf("cm2 value in DDSTG vs DDGR: %.17g %.17g\n\n", cm2, ddt_dm2 + cgamma*dgamma_dm2 + csini*dsi_dm2 + ck*dk_dm2 + cdr*ddr_dm2 + cdth*ddth_dm2 + cpbdot*dpbdot_dm2);
-    printf("cm2 value in DDSTG / DDGR: %.17g\n\n", cm2 / (ddt_dm2 + cgamma*dgamma_dm2 + csini*dsi_dm2 + ck*dk_dm2 + cdr*ddr_dm2 + cdth*ddth_dm2 + cpbdot*dpbdot_dm2));
-
-    printf("dgamma_dm value in DDSTG vs DDGR: %.17g %.17g\n", dgamma_dm, dgamdm);
-    printf("dsi_dm value in DDSTG vs DDGR: %.17g %.17g\n", dsi_dm, dsidm);
-    printf("dk_dm value in DDSTG vs DDGR: %.17g %.17g\n", dk_dm, dkdm);
-    printf("ddr_dm value in DDSTG vs DDGR: %.17g %.17g\n", ddr_dm, ddrdm);
-    printf("ddth_d value in DDSTG vs DDGR: %.17g %.17g\n", ddth_dm, dthdm);
-    printf("dpbdot_dm2 value in DDSTG vs DDGR: %.17g %.17g\n", dpbdot_dm, dpbdm);
-    printf("cm value in DDSTG vs DDGR: %.17g %.17g\n\n", cm, ck*dk_dm + cgamma*dgamma_dm + cdr*ddr_dm + cdth*ddth_dm + cpbdot*dpbdot_dm + csini*dsi_dm);
-    printf("cm value in DDSTG / DDGR: %.17g\n\n", cm / (ck*dk_dm + cgamma*dgamma_dm + cdr*ddr_dm + cdth*ddth_dm + cpbdot*dpbdot_dm + csini*dsi_dm));
-*/
-
+    ddt_dm2 = dSha / m2;
 
 
     cm2 = ddt_dm2 + cgamma*dgamma_dm2 + csini*dsi_dm2 + ck*dk_dm2 + cdr*ddr_dm2 + cdth*ddth_dm2 + cpbdot*dpbdot_dm2;
 
     cm = ck*dk_dm + cgamma*dgamma_dm + cdr*ddr_dm + cdth*ddth_dm + cpbdot*dpbdot_dm + csini*dsi_dm;
-
-//    printf("DDSTG: %.17g %.17g\n", cm, cm2);
 
 
     if (param==-2)  /* Set derived parameters */
@@ -587,7 +474,7 @@ void mass2ddstg(double am,double am2,double x,double ecc,double an,double *arr,d
     double SUNMASS = 4.925490947e-6, BARE_SUNMASS;
     double ARRTOL = 1.0e-10;
 
-    double m,m2,m1,arr0,arrold;
+    double m,m2,m1,arr0;
 
     double alpha0, beta0, mA, alphaA, betaA, kA, mB, alphaB, betaB, kB;
     double GAB, XA, XB, nu, gamma_AB, eps;
@@ -626,18 +513,6 @@ void mass2ddstg(double am,double am2,double x,double ecc,double an,double *arr,d
     eps = 2*gamma_AB + 1.0;                                          //Damour Tailor1992 near 3.4
 
     *arr = pow(GAB*m/pow(an,2), 1.0/3.0) * (1 - 1.0/6.0*(5*eps + 3.0 - 2*nu) * pow(GAB*m*an, 2.0/3.0));  //Damour Tailor1992 3.9 correct 
-
-/*
-//    printf("arr value in DDSTG vs DDGR: %.17g ", *arr);
-    arr0 = pow(m/(an*an),1.0/3.0);
-    *arr = arr0;
-    do {
-        arrold = *arr;
-        *arr = arr0*pow(1.0+(m1*m2/pow(m,2) - 9.0)*0.5*m/(*arr),2.0/3.0);
-    } while (fabs(((*arr)-arrold)/(*arr)) > ARRTOL);
-    *arr = arr0*pow(1.0+(m1*m2/pow(m,2) - 9.0)*0.5*m/(*arr),2.0/3.0); //GR
-//    printf("%.17g\n", *arr);
-*/
 
     *ar = (*arr)*m2/m;        //correct
 
@@ -706,19 +581,36 @@ void mass2ddstg(double am,double am2,double x,double ecc,double an,double *arr,d
 
 //    *dth *= W_mult;
 
-    derivatives->dk_dm2 = 0.0;
-    derivatives->dgamma_dm2 = (*gamma) * (1.0/m2 + 1.0/(m+m2));
-    derivatives->dsi_dm2 = -*si/m2;
+    // derivatives->dk_dm2 = 0.0;
+    // derivatives->dgamma_dm2 = (*gamma) * (1.0/m2 + 1.0/(m+m2));
+    // derivatives->dsi_dm2 = -*si/m2;
+    // derivatives->ddr_dm2 = *dr * 2*m2/(-3*pow(m,2) + pow(m2,2));
+    // derivatives->ddth_dm2 = *dth * 2*(m+m2)/(-7*pow(m,2) + 2*m*m2 + pow(m2,2));
+    // derivatives->dpbdot_dm2 = *pbdot * (1.0/m2 + 1.0/(-m+m2));
+
+    // derivatives->dk_dm = *xk * 2.0/(3*m);
+    // derivatives->dgamma_dm = *gamma * (-4.0/(3*m) + 1.0/(m+m2));
+    // derivatives->ddr_dm = *dr * (-4.0/(3*m) - 6*m/(-3*pow(m,2) + pow(m2,2)));
+    // derivatives->ddth_dm = *dth * (-4.0/(3*m) - 2*(7*m-m2)/(-7*pow(m,2) + 2*m*m2 + pow(m2,2)));
+    // derivatives->dpbdot_dm = *pbdot * (2*m+m2)/(3*pow(m,2) - 3*m*m2);
+    // derivatives->dsi_dm = *si * 2.0/(3*m);
+
+    derivatives->dk_dm2 = pow(GAB * m * an, 0.666666666666667) * (alphaB * alphaB * betaA - alphaA * alphaA * betaB) / (2 * m * (ecc * ecc - 1) * (alphaB * alphaA + 1) * (alphaB * alphaA + 1));
+    derivatives->dgamma_dm2 = ecc * pow(GAB * m * an, 0.666666666666667) * (2 * m2 * (alphaB * alphaA + 1) + m * (alphaB * kA + 1)) / (m * m * an * (alphaB * alphaA + 1));
+    derivatives->dsi_dm2 = m*m*m*x*pow(GAB*m/pow(an, 2), -1.0/3.0)*(-m*m - 0.333333333333333*m1*m2*pow(GAB*an*m, 2.0/3.0) + pow(GAB*an*m, 2.0/3.0)*(m*m*(0.833333333333333*eps + 0.5) - 0.333333333333333*m1*m2))/(m2*m2*pow(-m*m + pow(GAB*an*m, 2.0/3.0)*(m*m*(0.833333333333333*eps + 0.5) - 0.333333333333333*m1*m2), 2));
     derivatives->ddr_dm2 = *dr * 2*m2/(-3*pow(m,2) + pow(m2,2));
     derivatives->ddth_dm2 = *dth * 2*(m+m2)/(-7*pow(m,2) + 2*m*m2 + pow(m2,2));
     derivatives->dpbdot_dm2 = *pbdot * (1.0/m2 + 1.0/(-m+m2));
 
-    derivatives->dk_dm = *xk * 2.0/(3*m);
-    derivatives->dgamma_dm = *gamma * (-4.0/(3*m) + 1.0/(m+m2));
+    derivatives->dk_dm = pow(GAB * m * an, 0.666666666666667) * (-0.333333333333333 * m2 * alphaB * alphaB * betaA + m * alphaA * alphaA * betaB + 0.666666666666667 * m * (alphaB * alphaA + 1) * (2.0 * alphaB * alphaA - 6) + 0.333333333333333 * alphaA * alphaA * betaB * (m2 - m)) / (2 * m * m * (ecc * ecc - 1) * (alphaB * alphaA + 1) * (alphaB * alphaA + 1));
+    derivatives->dgamma_dm = -m2 * ecc * pow(GAB * m * an, 0.666666666666667) * (1.33333333333333 * m2 * (alphaB * alphaA + 1) + 0.333333333333333 * m * (alphaB * kA + 1)) / (m * m * m * an * (alphaB * alphaA + 1));
     derivatives->ddr_dm = *dr * (-4.0/(3*m) - 6*m/(-3*pow(m,2) + pow(m2,2)));
     derivatives->ddth_dm = *dth * (-4.0/(3*m) - 2*(7*m-m2)/(-7*pow(m,2) + 2*m*m2 + pow(m2,2)));
     derivatives->dpbdot_dm = *pbdot * (2*m+m2)/(3*pow(m,2) - 3*m*m2);
-    derivatives->dsi_dm = *si * 2.0/(3*m);
+    derivatives->dsi_dm = m*m*x*pow(GAB*m/pow(an, 2), -1.0/3.0)*(2.0/3.0*m*m + pow(GAB*an*m, 2.0/3.0)*(m*m*(0.555555555555555*eps + 0.333333333333333) + 0.444444444444444*m1*m2) - 2.0/3.0*pow(GAB*an*m, 2.0/3.0)*(m*m*(0.833333333333333*eps + 0.5) - 0.333333333333333*m1*m2))/(m2*pow(-m*m + pow(GAB*an*m, 2.0/3.0)*(m*m*(0.833333333333333*eps + 0.5) - 0.333333333333333*m1*m2), 2));
+
+
+    //printf("dk_dm2 : %f, dgamma_dm2 : %f, dsi_dm2 : %f, dk_dm : %f, dgamma_dm : %f, dsi_dm : %f\n", derivatives->dk_dm2,  (*gamma) * (1.0/m2 + 1.0/(m+m2)) / derivatives->dgamma_dm2, -*si/m2 / derivatives->dsi_dm2, *xk * 2.0/(3*m) / derivatives->dk_dm, *gamma * (-4.0/(3*m) + 1.0/(m+m2)) / derivatives->dgamma_dm, *si * 2.0/(3*m) / derivatives->dsi_dm);
 
 }
 

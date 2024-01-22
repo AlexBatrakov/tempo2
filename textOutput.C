@@ -138,17 +138,18 @@ void textOutput(pulsar *psr,int npsr,double globalParameter,int nGlobal,int outR
         printf("Results for PSR %s\n",psr[p].name);
         printf("\n\n");
         printf("RMS pre-fit residual = %.3f (us), RMS post-fit residual = %.3f (us)\n",psr[p].rmsPre,psr[p].rmsPost);
-        /*      printf("Weighted RMS pre-fit residual = %.3f (us), RMS post-fit residual = %.3f (us)\n",wrms_pre,rms_post); */
+        printf("RMS post-fit residual TN = %.3f (us)\n",psr[p].rmstn);
+        /* printf("Weighted RMS pre-fit residual = %.3f (us), RMS post-fit residual = %.3f (us)\n",wrms_pre,rms_post); */
         /*      printf("Fit Chisq = %.4e\t",psr[p].fitChisq*pow(psr[p].param[param_f0].val,2)); */
 
         if (psr[p].fitMode==1)
         {
-            printf("Fit Chisq = %.4g\t",psr[p].fitChisq);
+            printf("Fit Chisq = %.8g\t",psr[p].fitChisq);
             /*      printf("wmean = %g\n",sumwt/(double)psr[p].nobs); */
             /* chisqr = psr[p].fitChisq*pow(psr[p].param[param_f0].val,2)*sumwt/(double)psr[p].nobs/(double)psr[p].fitNfree; */
             chisqr = psr[p].fitChisq;
             printf("Chisqr/nfree = %.2f/%d = %g\t",chisqr,psr[p].fitNfree,chisqr/(double)psr[p].fitNfree);
-            printf("pre/post = %g\n",psr[p].rmsPre/psr[p].rmsPost);
+            printf("pre/post = %.8g\n",psr[p].rmsPre/psr[p].rmsPost);
             if( psr[p].robust > 0){
                 printf(" >>> Robust fitting enabled. Robust Mode = %c\n",psr[p].robust);
             }
@@ -798,7 +799,12 @@ void textOutput(pulsar *psr,int npsr,double globalParameter,int nGlobal,int outR
                         printf( " DDH-model Derived parameters:  M2 = %lg\n", (double)m2 );
                         printf( "                              SINI = %lg\n", (double)sini );
                     }
-                }        
+                }      
+
+                if (strcmp(psr[p].binaryModel, "DDSTG") == 0){
+                    si = getParameterValue(&psr[p],param_sini,0);
+                    printf(" DDSTG-model Derived parameters: SINI = %.14Lf\n", si); 
+                }
 
                 // Joris' mass calculations.
 
@@ -1351,6 +1357,7 @@ void textOutput(pulsar *psr,int npsr,double globalParameter,int nGlobal,int outR
                 // DDSTG print EOS and COMP_TYPE to new.par
                 if (strcmp(psr[p].eos_name, "NONE") != 0) fprintf(fout2,"%-15.15s%s\n","EOS",psr[p].eos_name);
                 if (strcmp(psr[p].companion_type, "NONE") != 0) fprintf(fout2,"%-15.15s%s\n","COMP_TYPE",psr[p].companion_type);
+                //if (strcmp(psr[p].binaryModel, "DDSTG") == 0) ld_fprintf(fout2,"#SINI\t\t%-25.20Lg\n",psr[p].param[param_sini].val[0]);
 
                 if (psr[p].tempo1 == 1)
                 {
@@ -1413,7 +1420,7 @@ void textOutput(pulsar *psr,int npsr,double globalParameter,int nGlobal,int outR
 
                 fprintf(fout2,"%-15.15s%s\n","NITS","1");
                 fprintf(fout2,"%-15.15s%d\n","NTOA",psr[p].nFit);
-                fprintf(fout2,"%-15.15s%.4f %d\n","CHI2R",chisqr/(double)psr[p].fitNfree,psr[p].fitNfree);
+                fprintf(fout2,"%-15.15s%.7f %d\n","CHI2R",chisqr/(double)psr[p].fitNfree,psr[p].fitNfree);
                 /*	  if (psr[p].tempo1 == 1)
                       fprintf(fout2,"EPHVER         2\n");
                       else
